@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>GREED — Gestionale Tablet</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --green: #1a2e1c;
+  --green-mid: #2a4a2d;
+  --green-light: #3d6b42;
+  --yellow: #F7CF45;
+  --yellow-dark: #d4a800;
+  --cream: #faf7f0;
+  --cream-dark: #f0ebe0;
+  --text: #1a1a1a;
+  --text-muted: #5a5a5a;
+  --border: #d4cfc4;
+  --white: #ffffff;
+  --red: #c0392b;
+  --radius: 14px;
+  --shadow: 0 4px 24px rgba(26,46,28,0.12);
+  --shadow-lg: 0 12px 48px rgba(26,46,28,0.20);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  font-family: 'Outfit', sans-serif;
+  background: var(--green);
+  color: var(--text);
+  touch-action: manipulation;
+}
+
+/* ── LOCK SCREEN ── */
+#lockScreen {
+  position: fixed;
+  inset: 0;
+  background: var(--green);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  gap: 0;
+}
+
+.lock-logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 52px;
+  font-weight: 700;
+  color: var(--yellow);
+  letter-spacing: 6px;
+  margin-bottom: 6px;
+}
+.lock-sub {
+  font-size: 13px;
+  color: rgba(247,207,69,0.5);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 48px;
+}
+
+.pin-display {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 40px;
+}
+.pin-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(247,207,69,0.4);
+  transition: all 0.2s;
+}
+.pin-dot.filled {
+  background: var(--yellow);
+  border-color: var(--yellow);
+  transform: scale(1.1);
+}
+.pin-dot.error {
+  background: var(--red);
+  border-color: var(--red);
+  animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+.pin-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  width: 280px;
+}
+.pin-btn {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(247,207,69,0.15);
+  border-radius: 12px;
+  color: var(--yellow);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px;
+  font-weight: 600;
+  height: 72px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+.pin-btn:active {
+  background: rgba(247,207,69,0.15);
+  border-color: var(--yellow);
+  transform: scale(0.95);
+}
+.pin-btn.del {
+  font-family: 'Outfit', sans-serif;
+  font-size: 20px;
+}
+.pin-btn.empty {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pin-error-msg {
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--red);
+  opacity: 0;
+  transition: opacity 0.3s;
+  letter-spacing: 0.5px;
+}
+.pin-error-msg.show { opacity: 1; }
+
+/* ── APP SHELL ── */
+#appShell {
+  display: none;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+#appShell.visible { display: flex; }
+
+/* ── TOP BAR ── */
+.topbar {
+  background: var(--green);
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+}
+.topbar-logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--yellow);
+  letter-spacing: 3px;
+}
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.topbar-time {
+  font-size: 13px;
+  color: rgba(247,207,69,0.6);
+  font-variant-numeric: tabular-nums;
+}
+.btn-lock {
+  background: rgba(247,207,69,0.1);
+  border: 1px solid rgba(247,207,69,0.2);
+  border-radius: 8px;
+  color: var(--yellow);
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-lock:active { background: rgba(247,207,69,0.2); }
+
+/* ── TAB BAR ── */
+.tabbar {
+  background: var(--green-mid);
+  display: flex;
+  border-bottom: 1px solid rgba(247,207,69,0.1);
+  flex-shrink: 0;
+}
+.tab-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  color: rgba(247,207,69,0.45);
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 14px 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  letter-spacing: 0.5px;
+  border-bottom: 3px solid transparent;
+  position: relative;
+}
+.tab-btn .tab-icon { font-size: 20px; }
+.tab-btn:active { background: rgba(247,207,69,0.05); }
+.tab-btn.active {
+  color: var(--yellow);
+  border-bottom-color: var(--yellow);
+  background: rgba(247,207,69,0.06);
+}
+
+/* Badge ordini */
+.tab-badge {
+  position: absolute;
+  top: 8px;
+  right: calc(50% - 18px);
+  background: var(--red);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  display: none;
+}
+.tab-badge.show { display: flex; }
+
+/* ── CONTENT ── */
+.content-area {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  background: var(--cream);
+}
+
+.tab-panel {
+  display: none;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+}
+.tab-panel.active { display: block; }
+
+.tab-panel iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+/* ── ORDINI PANEL (nativo, no iframe) ── */
+#panel-ordini {
+  overflow-y: auto;
+  background: var(--cream);
+  padding: 20px;
+}
+
+.ordini-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.ordini-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--green);
+}
+.ordini-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.stat-pill {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 14px 16px;
+  text-align: center;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+.stat-pill-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--green);
+  line-height: 1;
+}
+.stat-pill-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.ordini-list { display: flex; flex-direction: column; gap: 12px; }
+
+.ordine-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--yellow);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.ordine-card:active { transform: scale(0.99); }
+.ordine-card.consegnato { border-left-color: var(--green-light); opacity: 0.7; }
+.ordine-card.nuovo { border-left-color: var(--red); animation: pulsa 2s ease-in-out infinite; }
+
+@keyframes pulsa {
+  0%,100% { box-shadow: var(--shadow); }
+  50% { box-shadow: 0 0 0 4px rgba(192,57,43,0.15), var(--shadow); }
+}
+
+.ordine-avatar {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: var(--green);
+  color: var(--yellow);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ordine-info { flex: 1; min-width: 0; }
+.ordine-nome { font-size: 16px; font-weight: 600; color: var(--green); }
+.ordine-id { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.ordine-gusti { font-size: 13px; color: var(--text-muted); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ordine-destra { text-align: right; flex-shrink: 0; }
+.ordine-totale { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 700; color: var(--green); }
+.ordine-stato { font-size: 11px; font-weight: 600; margin-top: 4px; }
+.ordine-stato.attesa { color: #c8860a; }
+.ordine-stato.consegnato { color: var(--green-light); }
+
+.btn-refresh {
+  background: var(--green);
+  color: var(--yellow);
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-refresh:active { background: var(--green-mid); }
+
+/* ── MODAL ORDINE ── */
+#ordineModal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(26,46,28,0.6);
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+#ordineModal.open { display: flex; }
+.ordine-modal-box {
+  background: var(--white);
+  border-radius: 20px;
+  padding: 32px;
+  max-width: 520px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  position: relative;
+}
+.modal-close-btn {
+  position: absolute;
+  top: 16px; right: 20px;
+  background: none; border: none;
+  font-size: 24px; cursor: pointer;
+  color: var(--text-muted);
+}
+.modal-ordine-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--green);
+  margin-bottom: 20px;
+}
+.modal-cliente-box {
+  background: var(--cream);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.modal-vaschetta {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+.modal-vaschetta-title { font-weight: 600; font-size: 15px; margin-bottom: 6px; }
+.modal-gusti { font-size: 14px; color: var(--text-muted); line-height: 1.5; }
+.btn-consegna {
+  width: 100%;
+  background: var(--green);
+  color: var(--yellow);
+  border: none;
+  border-radius: 12px;
+  padding: 16px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: all 0.2s;
+  letter-spacing: 0.5px;
+}
+.btn-consegna:active { background: var(--green-mid); transform: scale(0.99); }
+.btn-consegna:disabled { opacity: 0.5; }
+
+/* ── EMPTY / LOADING ── */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+}
+.empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-text { font-size: 16px; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--green);
+  color: var(--yellow);
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  z-index: 999;
+  opacity: 0;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.toast.error { background: var(--red); color: white; }
+</style>
+</head>
+<body>
+
+<!-- ── LOCK SCREEN ── -->
+<div id="lockScreen">
+  <div class="lock-logo">GREED</div>
+  <div class="lock-sub">Gelateria Naturale</div>
+
+  <div class="pin-display">
+    <div class="pin-dot" id="d0"></div>
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+  </div>
+
+  <div class="pin-grid">
+    <button class="pin-btn" onclick="pinPress('1')">1</button>
+    <button class="pin-btn" onclick="pinPress('2')">2</button>
+    <button class="pin-btn" onclick="pinPress('3')">3</button>
+    <button class="pin-btn" onclick="pinPress('4')">4</button>
+    <button class="pin-btn" onclick="pinPress('5')">5</button>
+    <button class="pin-btn" onclick="pinPress('6')">6</button>
+    <button class="pin-btn" onclick="pinPress('7')">7</button>
+    <button class="pin-btn" onclick="pinPress('8')">8</button>
+    <button class="pin-btn" onclick="pinPress('9')">9</button>
+    <button class="pin-btn empty"></button>
+    <button class="pin-btn" onclick="pinPress('0')">0</button>
+    <button class="pin-btn del" onclick="pinDel()">⌫</button>
+  </div>
+
+  <div class="pin-error-msg" id="pinError">PIN errato — riprova</div>
+</div>
+
+<!-- ── APP SHELL ── -->
+<div id="appShell">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="topbar-logo">GREED</div>
+    <div class="topbar-right">
+      <div id="ruoloLabel" style="font-size:12px;color:rgba(247,207,69,0.6)"></div>
+      <div class="topbar-time" id="topbarTime"></div>
+      <button class="btn-lock" onclick="lockApp()">🔒 Blocca</button>
+    </div>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tabbar">
+    <button class="tab-btn active" id="tab-crm" onclick="switchTab('crm')">
+      <span class="tab-icon">👥</span>
+      CRM
+    </button>
+    <button class="tab-btn" id="tab-ordini" onclick="switchTab('ordini')">
+      <span class="tab-icon">🛒</span>
+      Ordini
+      <span class="tab-badge" id="ordiniBadge"></span>
+    </button>
+    <button class="tab-btn" id="tab-gusti" onclick="switchTab('gusti')">
+      <span class="tab-icon">🍦</span>
+      Gusti
+    </button>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <div class="tab-panel active" id="panel-crm">
+      <iframe src="https://gelateriagreed.it/crm/" allow="camera; clipboard-write" id="iframeCrm"></iframe>
+    </div>
+
+    <div class="tab-panel" id="panel-ordini">
+      <div style="padding:20px">
+        <div class="ordini-header">
+          <div class="ordini-title">Ordini in tempo reale</div>
+          <button class="btn-refresh" onclick="loadOrdini()">↻ Aggiorna</button>
+        </div>
+        <div class="ordini-stats">
+          <div class="stat-pill">
+            <div class="stat-pill-val" id="statNuovi">—</div>
+            <div class="stat-pill-label">In attesa</div>
+          </div>
+          <div class="stat-pill">
+            <div class="stat-pill-val" id="statOggi">—</div>
+            <div class="stat-pill-label">Oggi</div>
+          </div>
+          <div class="stat-pill">
+            <div class="stat-pill-val" id="statIncasso">—</div>
+            <div class="stat-pill-label">Incasso €</div>
+          </div>
+        </div>
+        <div class="ordini-list" id="ordiniList">
+          <div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-text">Caricamento ordini...</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="panel-gusti">
+      <iframe src="https://greedgelateria.github.io/admin-gusti/" id="iframeGusti"></iframe>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal dettaglio ordine -->
+<div id="ordineModal">
+  <div class="ordine-modal-box">
+    <button class="modal-close-btn" onclick="chiudiModal()">✕</button>
+    <div class="modal-ordine-title">Ordine <span id="mOrdineId" style="color:var(--green-light)"></span></div>
+    <div id="mOrdineBody"></div>
+    <button class="btn-consegna" id="btnConsegna" onclick="consegnaOrdine()">✓ Segna come consegnato</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, collection, doc, getDocs, updateDoc, query, orderBy, limit, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBwAZb_A3IjPv7iL0cLhVnWO-Cuw_DD5g4",
+  authDomain: "club-greed.firebaseapp.com",
+  projectId: "club-greed",
+  storageBucket: "club-greed.firebasestorage.app",
+  messagingSenderId: "704669833762",
+  appId: "1:704669833762:web:917f4c7b104bc8ad39087b"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ── PIN & RUOLI ──
+const PINS = {
+  '3737': 'titolare',
+  '1212': 'operatore',
+  '9898': 'operatore'
+};
+let pinBuffer = '';
+let ruoloCorrente = null;
+
+window.pinPress = function(n) {
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += n;
+  updateDots();
+  if (pinBuffer.length === 4) setTimeout(checkPin, 100);
+};
+
+window.pinDel = function() {
+  pinBuffer = pinBuffer.slice(0, -1);
+  updateDots();
+};
+
+function updateDots() {
+  for (let i = 0; i < 4; i++) {
+    const d = document.getElementById('d' + i);
+    d.className = 'pin-dot' + (i < pinBuffer.length ? ' filled' : '');
+  }
+}
+
+function checkPin() {
+  const ruolo = PINS[pinBuffer];
+  if (ruolo) {
+    ruoloCorrente = ruolo;
+    applicaRuolo(ruolo);
+    document.getElementById('lockScreen').style.display = 'none';
+    document.getElementById('appShell').classList.add('visible');
+    startClock();
+    startOrdiniListener();
+    // Prima tab: CRM per titolare, Ordini per operatore
+    switchTab(ruolo === 'titolare' ? 'crm' : 'ordini');
+    pinBuffer = '';
+    updateDots();
+  } else {
+    for (let i = 0; i < 4; i++) document.getElementById('d' + i).className = 'pin-dot error';
+    document.getElementById('pinError').classList.add('show');
+    setTimeout(() => {
+      pinBuffer = '';
+      updateDots();
+      document.getElementById('pinError').classList.remove('show');
+    }, 1200);
+  }
+}
+
+function applicaRuolo(ruolo) {
+  const isTitolare = ruolo === 'titolare';
+  // Tab CRM: visibile solo al titolare
+  document.getElementById('tab-crm').style.display = isTitolare ? '' : 'none';
+  // Indicatore ruolo nella topbar
+  document.getElementById('ruoloLabel').textContent = isTitolare ? '👑 Titolare' : '👤 Operatore';
+  // CRM iframe: titolare vede tutto, operatore vede versione ristretta
+  const iframeCrm = document.getElementById('iframeCrm');
+  iframeCrm.src = isTitolare
+    ? 'https://gelateriagreed.it/crm/'
+    : 'https://gelateriagreed.it/crm/?ruolo=operatore';
+}
+
+window.lockApp = function() {
+  document.getElementById('appShell').classList.remove('visible');
+  document.getElementById('lockScreen').style.display = 'flex';
+  ruoloCorrente = null;
+  pinBuffer = '';
+  updateDots();
+  if (window._ordiniUnsub) window._ordiniUnsub();
+};
+
+// ── CLOCK ──
+function startClock() {
+  function tick() {
+    const now = new Date();
+    document.getElementById('topbarTime').textContent =
+      now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+  }
+  tick();
+  setInterval(tick, 10000);
+}
+
+// ── TABS ──
+window.switchTab = function(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+  if (name === 'ordini') loadOrdini();
+};
+
+// ── ORDINI ──
+let ordiniCache = [];
+let ordineCorrenteId = null;
+
+function startOrdiniListener() {
+  const q = query(collection(db, 'ordini'), orderBy('createdAt', 'desc'), limit(50));
+  window._ordiniUnsub = onSnapshot(q, snap => {
+    ordiniCache = snap.docs.map(d => ({ docId: d.id, ...d.data() }));
+    const attesa = ordiniCache.filter(o => o.stato === 'pagato').length;
+    const badge = document.getElementById('ordiniBadge');
+    if (attesa > 0) {
+      badge.textContent = attesa;
+      badge.classList.add('show');
+    } else {
+      badge.classList.remove('show');
+    }
+    // aggiorna se il panel è visibile
+    if (document.getElementById('panel-ordini').classList.contains('active')) {
+      renderOrdini(ordiniCache);
+    }
+  });
+}
+
+window.loadOrdini = function() {
+  renderOrdini(ordiniCache);
+};
+
+function renderOrdini(ordini) {
+  const oggi = new Date().toLocaleDateString('it-IT');
+  const attesa = ordini.filter(o => o.stato === 'pagato');
+  const todayOrdini = ordini.filter(o => {
+    const d = o.createdAt?.toDate ? o.createdAt.toDate().toLocaleDateString('it-IT') : '';
+    return d === oggi;
+  });
+  const incasso = ordini.filter(o => o.stato === 'consegnato').reduce((s,o) => s+(o.totale||0), 0);
+
+  document.getElementById('statNuovi').textContent = attesa.length;
+  document.getElementById('statOggi').textContent = todayOrdini.length;
+  document.getElementById('statIncasso').textContent = incasso.toFixed(0);
+
+  const list = document.getElementById('ordiniList');
+  if (!ordini.length) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">🍦</div><div class="empty-text">Nessun ordine ancora</div></div>';
+    return;
+  }
+
+  list.innerHTML = ordini.map(o => {
+    const isNuovo = o.stato === 'pagato';
+    const gusti = o.carrello?.map(i => i.gusti?.join(', ')).join(' · ') || '—';
+    const ora = o.createdAt?.toDate ? o.createdAt.toDate().toLocaleTimeString('it-IT', {hour:'2-digit',minute:'2-digit'}) : '';
+    return `<div class="ordine-card ${o.stato === 'consegnato' ? 'consegnato' : isNuovo ? 'nuovo' : ''}" onclick="apriOrdine('${o.docId}')">
+      <div class="ordine-avatar">${(o.nome||'?')[0].toUpperCase()}</div>
+      <div class="ordine-info">
+        <div class="ordine-nome">${o.nome||''} ${o.cognome||''}</div>
+        <div class="ordine-id">${o.ordineId||o.docId} · ${ora}</div>
+        <div class="ordine-gusti">${gusti}</div>
+      </div>
+      <div class="ordine-destra">
+        <div class="ordine-totale">€${(o.totale||0).toFixed(2)}</div>
+        <div class="ordine-stato ${o.stato === 'consegnato' ? 'consegnato' : 'attesa'}">${o.stato === 'consegnato' ? '✓ Consegnato' : '⏳ In attesa'}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.apriOrdine = function(docId) {
+  const o = ordiniCache.find(x => x.docId === docId);
+  if (!o) return;
+  ordineCorrenteId = docId;
+
+  document.getElementById('mOrdineId').textContent = o.ordineId || docId;
+
+  let html = `<div class="modal-cliente-box">
+    <div style="font-size:16px;font-weight:600">${o.nome||''} ${o.cognome||''}</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-top:2px">${o.telefono||''}</div>
+    <div style="font-size:13px;color:var(--text-muted)">€${(o.totale||0).toFixed(2)}</div>
+  </div>`;
+
+  (o.carrello||[]).forEach(item => {
+    html += `<div class="modal-vaschetta">
+      <div class="modal-vaschetta-title">${item.vaschetta}</div>
+      <div class="modal-gusti">${item.gusti?.join(', ')||'—'}</div>
+      ${item.scorta ? `<div style="font-size:12px;color:#c8860a;margin-top:4px">Scorta: ${item.scorta}</div>` : ''}
+      ${item.panna ? `<div style="font-size:12px;color:var(--text-muted)">+ Panna</div>` : ''}
+      ${item.miniconi ? `<div style="font-size:12px;color:var(--text-muted)">+ Kit miniconi</div>` : ''}
+      ${item.note ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px">Note: ${item.note}</div>` : ''}
+    </div>`;
+  });
+
+  document.getElementById('mOrdineBody').innerHTML = html;
+  document.getElementById('btnConsegna').disabled = o.stato === 'consegnato';
+  document.getElementById('btnConsegna').textContent = o.stato === 'consegnato' ? '✓ Già consegnato' : '✓ Segna come consegnato';
+  document.getElementById('ordineModal').classList.add('open');
+};
+
+window.chiudiModal = function() {
+  document.getElementById('ordineModal').classList.remove('open');
+  ordineCorrenteId = null;
+};
+
+window.consegnaOrdine = async function() {
+  if (!ordineCorrenteId) return;
+  try {
+    await updateDoc(doc(db, 'ordini', ordineCorrenteId), { stato: 'consegnato' });
+    showToast('Ordine consegnato ✓');
+    chiudiModal();
+  } catch(e) {
+    showToast('Errore aggiornamento', 'error');
+  }
+};
+
+// ── TOAST ──
+window.showToast = function(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.className = 'toast', 3000);
+};
+</script>
+</body>
+</html>
