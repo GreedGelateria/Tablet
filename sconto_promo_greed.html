@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>GREED · Sconto Promo</title>
+<meta name="theme-color" content="#1F4A36">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sconto −30%">
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxODAgMTgwIj48cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgcng9IjQwIiBmaWxsPSIjMUY0QTM2Ii8+PHRleHQgeD0iOTAiIHk9Ijg2IiBmb250LWZhbWlseT0iR2VvcmdpYSxzZXJpZiIgZm9udC1zaXplPSIzNCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2ZmZmZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgbGV0dGVyLXNwYWNpbmc9IjIiPkdSRUVEPC90ZXh0Pjx0ZXh0IHg9IjkwIiB5PSIxMzgiIGZvbnQtZmFtaWx5PSJBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjQ2IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjRDk4QTJCIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4tMzAlPC90ZXh0Pjwvc3ZnPg==">
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxODAgMTgwIj48cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgcng9IjQwIiBmaWxsPSIjMUY0QTM2Ii8+PHRleHQgeD0iOTAiIHk9Ijg2IiBmb250LWZhbWlseT0iR2VvcmdpYSxzZXJpZiIgZm9udC1zaXplPSIzNCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2ZmZmZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgbGV0dGVyLXNwYWNpbmc9IjIiPkdSRUVEPC90ZXh0Pjx0ZXh0IHg9IjkwIiB5PSIxMzgiIGZvbnQtZmFtaWx5PSJBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjQ2IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjRDk4QTJCIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4tMzAlPC90ZXh0Pjwvc3ZnPg==">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FBF8F1;
+    --green-deep:#1F4A36;
+    --green:#2E6A4E;
+    --green-soft:#E7F0E9;
+    --amber:#D98A2B;
+    --ink:#1d2b22;
+    --muted:#83918a;
+    --card:#FFFFFF;
+    --line:#E6E0D4;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    display:flex;justify-content:center;align-items:flex-start;
+    padding:18px;min-height:100%;
+  }
+  .app{width:100%;max-width:440px;}
+
+  .head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .brand{font-weight:700;letter-spacing:.14em;font-size:14px;color:var(--green-deep);}
+  .brand small{display:block;letter-spacing:.04em;font-weight:500;color:var(--muted);font-size:11px;margin-top:2px;}
+  .disc{
+    display:flex;align-items:center;gap:6px;background:var(--green-deep);color:#fff;
+    border-radius:999px;padding:8px 14px;font-weight:700;font-size:15px;
+  }
+  .disc input{
+    width:42px;border:0;background:transparent;color:#fff;font:inherit;font-weight:700;
+    text-align:right;outline:none;-moz-appearance:textfield;
+  }
+  .disc input::-webkit-outer-spin-button,.disc input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+
+  .result{
+    background:var(--green);
+    background:linear-gradient(160deg,var(--green) 0%,var(--green-deep) 100%);
+    border-radius:22px;padding:22px 22px 24px;color:#fff;margin-bottom:14px;
+    box-shadow:0 10px 30px rgba(31,74,54,.18);
+  }
+  .result .lbl{font-size:12px;letter-spacing:.18em;text-transform:uppercase;opacity:.8;}
+  .pay{
+    font-family:"Fraunces",Georgia,serif;font-weight:600;
+    font-size:clamp(54px,16vw,76px);line-height:1;margin:6px 0 2px;
+    font-variant-numeric:tabular-nums;
+  }
+  .sub{display:flex;justify-content:space-between;font-size:13px;opacity:.9;margin-top:12px;
+    border-top:1px solid rgba(255,255,255,.18);padding-top:10px;}
+  .sub b{font-weight:600;}
+
+  .totline{font-size:13px;color:var(--muted);margin:0 4px 8px;display:flex;justify-content:space-between;}
+  .totline b{color:var(--ink);font-variant-numeric:tabular-nums;font-size:15px;}
+
+  .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .key{
+    border:1px solid var(--line);background:var(--card);border-radius:16px;
+    font-size:26px;font-weight:600;color:var(--ink);height:64px;cursor:pointer;
+    font-variant-numeric:tabular-nums;transition:transform .05s,background .1s;
+  }
+  .key:active{transform:scale(.96);background:var(--green-soft);}
+  .key.util{font-size:20px;color:var(--green-deep);}
+  .clear{
+    grid-column:1 / -1;border:0;background:var(--green-soft);color:var(--green-deep);
+    border-radius:16px;font-size:16px;font-weight:700;letter-spacing:.06em;height:52px;
+    margin-top:2px;cursor:pointer;text-transform:uppercase;
+  }
+  .clear:active{transform:scale(.99);}
+  .foot{text-align:center;color:var(--muted);font-size:11px;margin-top:14px;line-height:1.5;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="head">
+    <div class="brand">GREED<small>Promo riattivazione</small></div>
+    <div class="disc">−<input id="disc" type="number" value="30" min="0" max="100" inputmode="numeric">%</div>
+  </div>
+
+  <div class="result">
+    <div class="lbl">Da pagare</div>
+    <div class="pay" id="pay">€ 0,00</div>
+    <div class="sub"><span>Sconto</span><b id="saved">€ 0,00</b></div>
+  </div>
+
+  <div class="totline"><span>Totale digitato</span><b id="tot">€ 0,00</b></div>
+
+  <div class="pad">
+    <button class="key" data-k="7">7</button>
+    <button class="key" data-k="8">8</button>
+    <button class="key" data-k="9">9</button>
+    <button class="key" data-k="4">4</button>
+    <button class="key" data-k="5">5</button>
+    <button class="key" data-k="6">6</button>
+    <button class="key" data-k="1">1</button>
+    <button class="key" data-k="2">2</button>
+    <button class="key" data-k="3">3</button>
+    <button class="key util" data-k=",">,</button>
+    <button class="key" data-k="0">0</button>
+    <button class="key util" data-k="back">⌫</button>
+    <button class="clear" id="clear">Azzera</button>
+  </div>
+
+  <div class="foot">Inserisci il totale del cliente: il prezzo da fare è quello grande in alto.<br>Es. € 16,00 → € 11,20</div>
+</div>
+
+<script>
+  let raw = ""; // stringa grezza digitata, separatore "."
+  const payEl = document.getElementById('pay');
+  const savedEl = document.getElementById('saved');
+  const totEl = document.getElementById('tot');
+  const discEl = document.getElementById('disc');
+
+  function eur(n){
+    return "€ " + n.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
+  }
+  function currentTotal(){
+    const v = parseFloat(raw === "" ? "0" : raw);
+    return isNaN(v) ? 0 : v;
+  }
+  function render(){
+    const tot = currentTotal();
+    let d = parseFloat(discEl.value);
+    if(isNaN(d) || d < 0) d = 0; if(d > 100) d = 100;
+    const pay = tot * (1 - d/100);
+    const saved = tot - pay;
+    totEl.textContent = eur(tot);
+    payEl.textContent = eur(pay);
+    savedEl.textContent = eur(saved);
+  }
+  function press(k){
+    if(k === 'back'){ raw = raw.slice(0,-1); }
+    else if(k === ','){ if(!raw.includes('.')) raw += (raw===""?"0":"") + "."; }
+    else {
+      // blocca oltre 2 decimali
+      if(raw.includes('.') && raw.split('.')[1].length >= 2) return;
+      if(raw === "0") raw = k; else raw += k;
+    }
+    render();
+  }
+  document.querySelectorAll('.key').forEach(b=>{
+    b.addEventListener('click',()=>press(b.dataset.k));
+  });
+  document.getElementById('clear').addEventListener('click',()=>{ raw=""; render(); });
+  discEl.addEventListener('input',render);
+  // tastiera fisica opzionale (desktop)
+  document.addEventListener('keydown',e=>{
+    if(e.key>='0'&&e.key<='9') press(e.key);
+    else if(e.key===','||e.key==='.') press(',');
+    else if(e.key==='Backspace') press('back');
+    else if(e.key==='Escape'){ raw=""; render(); }
+  });
+  render();
+</script>
+</body>
+</html>
