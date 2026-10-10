@@ -1092,6 +1092,7 @@ tbody td {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc, query, orderBy, limit, where, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getStorage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBwAZb_A3IjPv7iL0cLhVnWO-Cuw_DD5g4",
@@ -1104,6 +1105,45 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
+// ── ACCESSO STAFF ─────────────────────────────────────────────────────────
+// I dati dei clienti sono leggibili solo con l'account GREED: il login si fa UNA volta
+// su questo tablet e resta memorizzato. Lo staff usa solo il PIN.
+const auth = getAuth(app);
+const EMAIL_AUTORIZZATE = ['team.greedfrascati@gmail.com', 'gelateriagreed@gmail.com'];
+function mostraAccessoStaff(msg){
+  let ov = document.getElementById('accesso-staff');
+  if(!ov){
+    ov = document.createElement('div');
+    ov.id = 'accesso-staff';
+    ov.style.cssText = 'position:fixed;inset:0;background:#0a0a0a;z-index:100000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;font-family:sans-serif;color:#f3ead8;text-align:center;padding:24px';
+    ov.innerHTML = '<div style="font-size:42px">🔐</div><div style="font-size:20px;font-weight:700">Configurazione tablet</div>'
+      + '<div style="font-size:14px;opacity:.75;max-width:360px">Accesso una tantum con l\'account staff GREED. Dopo resta memorizzato su questo dispositivo.</div>'
+      + '<button id="btn-accesso-staff" style="padding:14px 26px;border-radius:10px;border:none;background:#c8962b;color:#111;font-size:16px;font-weight:700">Accedi con Google</button>'
+      + '<div id="msg-accesso-staff" style="font-size:13px;color:#e07060;min-height:18px"></div>';
+    document.body.appendChild(ov);
+    ov.querySelector('#btn-accesso-staff').onclick = async () => {
+      try { await signInWithPopup(auth, new GoogleAuthProvider()); location.reload(); }
+      catch(e){ document.getElementById('msg-accesso-staff').textContent = 'Accesso non riuscito: ' + e.message; }
+    };
+  }
+  ov.style.display = 'flex';
+  document.getElementById('msg-accesso-staff').textContent = msg || '';
+}
+onAuthStateChanged(auth, async u => {
+  if(!u){ mostraAccessoStaff(); return; }
+  if(!EMAIL_AUTORIZZATE.includes(u.email)){ await signOut(auth); mostraAccessoStaff('Account ' + u.email + ' non autorizzato: usa l\'account staff GREED.'); return; }
+  const ov = document.getElementById('accesso-staff'); if(ov) ov.style.display = 'none';
+});
+// Ogni chiamata alle funzioni GREED porta con sé l'accesso del tablet
+const _fetchOriginale = window.fetch.bind(window);
+window.fetch = async (url, opt = {}) => {
+  if(/\.run\.app|cloudfunctions\.net/.test(String(url)) && auth.currentUser){
+    const token = await auth.currentUser.getIdToken();
+    opt = { ...opt, headers: { ...(opt.headers || {}), Authorization: 'Bearer ' + token } };
+  }
+  return _fetchOriginale(url, opt);
+};
 
 // -- UTILS --
 window.db = db;
@@ -1889,20 +1929,22 @@ window.premiaSocial = async function(piattaforma, punti) {
 
 window.aggiungiCheckinCassa = async function() {
   const c = window.allClienti.find(x => x.id === currentCassaCliente);
-  const nuovi = (c.punti||0) + 5;
+  if (!c) return;
   try {
-    await updateDoc(doc(db, 'clienti', currentCassaCliente), { punti: nuovi });
-    await addDoc(collection(db, 'clienti', currentCassaCliente, 'storico'), {
-      tipo: 'checkin',
-      punti: 5,
-      data: serverTimestamp(),
-      note: 'Check-in giornaliero'
+    // Passa dal server: aggiorna punti e livello, registra il check-in e manda il WhatsApp dei punti
+    const res = await fetch('https://aggiornapunticliente-u3jmxuuypq-ey.a.run.app', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clienteId: currentCassaCliente, puntiAggiunti: 5, tipo: 'checkin' })
     });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Errore server');
+    const nuovi = data.puntiTotali;
     document.getElementById('foundPunti').textContent = nuovi;
     const ci = window.allClienti.find(x => x.id === currentCassaCliente);
     if (ci) ci.punti = nuovi;
-    showToast(`Check-in: +5 punti a ${c.nome} v`);
-  } catch(e) { showToast('Errore', 'error'); }
+    showToast(`Check-in: +5 punti a ${c.nome} — WhatsApp inviato ✓`);
+  } catch(e) { showToast('Errore check-in: ' + e.message, 'error'); console.error(e); }
 }
 
 window.resetCassa = function() {
