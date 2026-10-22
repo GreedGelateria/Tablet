@@ -3863,8 +3863,9 @@ window.stampaClassifica = async function() {
     if (!r.ok || !j.ok) throw new Error(j.error || ('errore ' + r.status));
     const xml = _xmlClassifica(j);
     const ok = await _stampaFirestore({ tipo: 'classifica', _rawXml: xml });
-    showToast(ok ? '🖨️ Classifica inviata alla stampante ✓' : 'Stampa non riuscita', ok ? undefined : 'error');
-  } catch (e) { showToast('Classifica non disponibile: ' + e.message, 'error'); }
+    // Messaggio in finestra: il riquadro in basso può essere coperto dal pulsante delle notifiche vocali
+    alert(ok ? '🖨️ Classifica inviata alla stampante (' + j.top.length + ' posti, ' + j.partecipanti + ' partecipanti).' : '❌ Stampa non riuscita: la richiesta non è arrivata alla stampante.');
+  } catch (e) { alert('❌ Classifica non disponibile: ' + e.message); }
 };
 function _xmlClassifica(j) {
   const e = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
