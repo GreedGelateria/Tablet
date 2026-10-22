@@ -882,7 +882,10 @@ tbody td {
 
       <!-- Top 10 clienti fedeli -->
       <div style="margin-bottom:24px">
-        <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--green);margin-bottom:12px">🏅 Top 10 clienti fedeli</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+          <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--green)">🏅 Top 10 clienti fedeli</div>
+          <button class="btn" onclick="stampaClassifica()" style="font-size:13px">🖨️ Stampa classifica per il negozio</button>
+        </div>
         <div class="table-wrap">
           <table>
             <thead><tr><th style="width:50px">#</th><th>Cliente</th><th>Check-in</th><th>Primo</th><th>Ultimo</th></tr></thead>
@@ -3849,6 +3852,62 @@ window.stampaOrdine = async function() {
   showToast('Stampa non disponibile — apertura finestra browser', 'error');
   _stampaFinestraBrowser(o);
 };
+
+// ── CLASSIFICA CHECK-IN DA ESPORRE ── solo numeri socio, niente nomi (privacy)
+const PREMI_GARA = ['Vaschetta di gelato da 1 kg', 'Vaschetta di gelato da 500 g', 'Cono 3 gusti'];
+window.stampaClassifica = async function() {
+  try {
+    showToast('⏳ Preparo la classifica…');
+    const r = await fetch('https://europe-west3-club-greed.cloudfunctions.net/classificaCheckin?n=10');
+    const j = await r.json();
+    if (!r.ok || !j.ok) throw new Error(j.error || ('errore ' + r.status));
+    const xml = _xmlClassifica(j);
+    const ok = await _stampaFirestore({ tipo: 'classifica', _rawXml: xml });
+    showToast(ok ? '🖨️ Classifica inviata alla stampante ✓' : 'Stampa non riuscita', ok ? undefined : 'error');
+  } catch (e) { showToast('Classifica non disponibile: ' + e.message, 'error'); }
+};
+function _xmlClassifica(j) {
+  const e = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const oggi = new Date();
+  const fine = new Date(j.fineGara + 'T23:59:59');
+  const giorni = Math.max(0, Math.ceil((fine - oggi) / 86400000));
+  const riga = x => {
+    const sx = (String(x.posizione).padStart(2, ' ') + '.  Socio N. ' + x.numeroSocio);
+    const dx = x.checkin + ' check-in';
+    return sx + ' '.repeat(Math.max(1, 42 - sx.length - dx.length)) + dx;
+  };
+  const righe = j.top.length ? j.top.map(riga).join('\n') : 'Nessun check-in ancora: inizia tu!';
+  return `<?xml version="1.0" encoding="utf-8"?>
+<PrintRequestInfo Version="2.00">
+  <ePOSPrint>
+    <Parameter><devid>local_printer</devid><timeout>10000</timeout><printjobid>CL${Date.now()}</printjobid></Parameter>
+    <PrintData>
+      <epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">
+        <text align="center" em="true" dh="true" dw="true">GREED\n</text>
+        <text align="center" em="false" dh="false" dw="false">Gelateria Naturale - Frascati\n</text>
+        <text align="center">- - - - - - - - - - - - - - - -\n</text>
+        <feed line="1"/>
+        <text align="center" em="true" dh="true" dw="false">CLASSIFICA CLUB GREED\n</text>
+        <text align="center" em="false" dh="false">Check-in ${e(j.anno)} - aggiornata al ${e(oggi.toLocaleDateString('it-IT'))}\n</text>
+        <feed line="1"/>
+        <text align="left" em="true">${e(righe)}\n</text>
+        <feed line="1"/>
+        <text align="center">- - - - - - - - - - - - - - - -\n</text>
+        <text align="center" em="true">IL 15 DICEMBRE SI PREMIA!\n</text>
+        <text align="center" em="false">1. ${e(PREMI_GARA[0])}\n2. ${e(PREMI_GARA[1])}\n3. ${e(PREMI_GARA[2])}\n</text>
+        <feed line="1"/>
+        <text align="center" em="true">${giorni > 0 ? 'Mancano ' + giorni + ' giorni' : 'Gara conclusa'}\n</text>
+        <feed line="1"/>
+        <text align="center" em="false">Il tuo numero socio compare quando\nfai il check-in con il QR del giorno.\nA parita di check-in vince chi ci e\narrivato prima.\n</text>
+        <feed line="1"/>
+        <text align="center">Partecipanti: ${e(j.partecipanti)}\n</text>
+        <feed line="3"/>
+        <cut type="feed"/>
+      </epos-print>
+    </PrintData>
+  </ePOSPrint>
+</PrintRequestInfo>`;
+}
 
 // ── stampaQRGiorno e stampaQRCliente aggiornati (cascata) ──────
 window.stampaQRGiorno = async function() {
