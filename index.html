@@ -3861,12 +3861,46 @@ window.stampaClassifica = async function() {
     const r = await fetch('https://europe-west3-club-greed.cloudfunctions.net/classificaCheckin?n=10');
     const j = await r.json();
     if (!r.ok || !j.ok) throw new Error(j.error || ('errore ' + r.status));
-    const xml = _xmlClassifica(j);
-    const ok = await _stampaFirestore({ tipo: 'classifica', _rawXml: xml });
+    // Stessa cascata del QR del giorno: prima la stampante USB collegata al Tablet, poi il server
+    let ok = await _stampaUSB(_escPosClassifica(j));
+    if (!ok) ok = await _stampaFirestore({ tipo: 'classifica', _rawXml: _xmlClassifica(j) });
     // Messaggio in finestra: il riquadro in basso può essere coperto dal pulsante delle notifiche vocali
     alert(ok ? '🖨️ Classifica inviata alla stampante (' + j.top.length + ' posti, ' + j.partecipanti + ' partecipanti).' : '❌ Stampa non riuscita: la richiesta non è arrivata alla stampante.');
   } catch (e) { alert('❌ Classifica non disponibile: ' + e.message); }
 };
+// Classifica in comandi ESC/POS per la stampante USB (stesso formato dello scontrino del QR)
+function _escPosClassifica(j) {
+  const chunks = [];
+  const cmd = (...b) => chunks.push(new Uint8Array(b));
+  const txt = s => chunks.push(_cp858(s));
+  const fine = new Date(j.fineGara + 'T23:59:59');
+  const giorni = Math.max(0, Math.ceil((fine - new Date()) / 86400000));
+  cmd(0x1B, 0x40); cmd(0x1B, 0x61, 0x01);
+  cmd(0x1D, 0x21, 0x11); txt('GREED\n'); cmd(0x1D, 0x21, 0x00);
+  txt('Gelateria Naturale \xF9 Frascati\n');
+  txt('- - - - - - - - - - - - - - - -\n\n');
+  cmd(0x1B, 0x45, 0x01); cmd(0x1D, 0x21, 0x01); txt('CLASSIFICA CLUB GREED\n'); cmd(0x1D, 0x21, 0x00); cmd(0x1B, 0x45, 0x00);
+  txt('Check-in ' + j.anno + ' - aggiornata al ' + new Date().toLocaleDateString('it-IT') + '\n\n');
+  cmd(0x1B, 0x61, 0x00); cmd(0x1B, 0x45, 0x01);
+  if (j.top.length) {
+    j.top.forEach(x => {
+      const sx = String(x.posizione).padStart(2, ' ') + '.  Socio N. ' + x.numeroSocio;
+      const dx = x.checkin + ' check-in';
+      txt(sx + ' '.repeat(Math.max(1, 42 - sx.length - dx.length)) + dx + '\n');
+    });
+  } else txt('Nessun check-in ancora: inizia tu!\n');
+  cmd(0x1B, 0x45, 0x00); cmd(0x1B, 0x61, 0x01);
+  txt('\n- - - - - - - - - - - - - - - -\n');
+  cmd(0x1B, 0x45, 0x01); txt('IL 15 DICEMBRE SI PREMIA!\n'); cmd(0x1B, 0x45, 0x00);
+  txt('1. ' + PREMI_GARA[0] + '\n2. ' + PREMI_GARA[1] + '\n3. ' + PREMI_GARA[2] + '\n\n');
+  cmd(0x1B, 0x45, 0x01); txt(giorni > 0 ? 'Mancano ' + giorni + ' giorni\n\n' : 'Gara conclusa\n\n'); cmd(0x1B, 0x45, 0x00);
+  txt('Il tuo numero socio compare quando\nfai il check-in con il QR del giorno.\nA parita di check-in vince chi ci e\narrivato prima.\n\n');
+  txt('Partecipanti: ' + j.partecipanti + '\n\n\n\n');
+  cmd(0x1D, 0x56, 0x41, 0x03);
+  const out = new Uint8Array(chunks.reduce((s, c) => s + c.length, 0)); let off = 0;
+  chunks.forEach(c => { out.set(c, off); off += c.length; });
+  return out;
+}
 function _xmlClassifica(j) {
   const e = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const oggi = new Date();
