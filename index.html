@@ -740,6 +740,8 @@ tbody td {
         </div>
       </div>
 
+      <div id="cassaAmicoBox" style="display:none;background:#fff4dd;border:1.5px solid var(--yellow);border-radius:10px;padding:16px 20px;margin-bottom:16px"></div>
+
       <div style="background:var(--cream);border-radius:10px;padding:20px;margin-bottom:16px">
         <div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.8px">Aggiungi punti acquisto</div>
         <div class="punti-add-form">
@@ -1804,8 +1806,45 @@ window.selezionaClienteCassa = async function(id) {
     document.getElementById('clienteFound').classList.add('visible');
     // Aggiorna sezione premi
     aggiornaSezionePremi(puntiDisponibili, puntiStorici);
+    mostraCodiceAmicoCassa(c);
   } catch(e) { showToast('Errore caricamento cliente', 'error'); }
 }
+
+// ── Passaparola: sconto amico sul primo acquisto al banco ───────
+async function mostraCodiceAmicoCassa(c) {
+  const box = document.getElementById('cassaAmicoBox');
+  if (!box) return;
+  box.style.display = 'none'; box.innerHTML = '';
+  if (!c.codiceAmico) return;
+  try {
+    const s = await getDoc(doc(db, 'codiciPromo', c.codiceAmico));
+    if (!s.exists() || window.currentCassaCliente !== c.id) return;
+    const x = s.data();
+    const scad = x.scadenza && typeof x.scadenza.toMillis === 'function' ? x.scadenza.toMillis() : 0;
+    if (x.usato === true || (scad && Date.now() > scad)) return;
+    const sconto = Number(x.sconto) || 0;
+    box.innerHTML = `<div style="font-weight:700;font-size:15px;margin-bottom:6px">🎁 Primo acquisto con invito: −${sconto}%</div>
+      <div style="font-size:13px;margin-bottom:10px">Scrivi sotto l'importo pieno, poi premi il pulsante: il tablet ti dice quanto far pagare.</div>
+      <button class="btn btn-primary" onclick="applicaCodiceAmicoCassa('${c.codiceAmico}', ${sconto})">Applica sconto amico −${sconto}%</button>`;
+    box.style.display = 'block';
+  } catch(e) { console.error('Codice amico:', e); }
+}
+
+window.applicaCodiceAmicoCassa = async function(codice, sconto) {
+  const inp = document.getElementById('cassaImporto');
+  const pieno = parseFloat(inp.value) || 0;
+  if (!pieno) { showToast("Scrivi prima l'importo pieno", 'error'); inp.focus(); return; }
+  const scontato = Math.round(pieno * (100 - sconto)) / 100;
+  const eur = n => n.toFixed(2).replace('.', ',');
+  if (!confirm(`Sconto amico −${sconto}%\n\nImporto pieno: € ${eur(pieno)}\nFai pagare: € ${eur(scontato)}\n\nConfermi? Il codice vale una volta sola.`)) return;
+  try {
+    await updateDoc(doc(db, 'codiciPromo', codice), { usato: true, usatoAt: serverTimestamp(), usatoCanale: 'banco' });
+    inp.value = scontato.toFixed(2);
+    if (typeof calcolaPunti === 'function') calcolaPunti();
+    document.getElementById('cassaAmicoBox').innerHTML = `<b>✓ Sconto amico applicato.</b> Fai pagare <b>€ ${eur(scontato)}</b>, poi premi <b>Aggiungi</b> per registrare l'acquisto.`;
+    showToast('Sconto amico applicato ✓');
+  } catch(e) { showToast('Sconto non applicato: ' + e.message, 'error'); }
+};
 
 // ── Catalogo premi ──────────────────────────────────────────────
 const CATALOGO_PREMI = [
