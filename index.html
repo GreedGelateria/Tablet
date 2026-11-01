@@ -1833,18 +1833,20 @@ window.selezionaClienteCassa = async function(id) {
 async function mostraCodiceAmicoCassa(c) {
   const box = document.getElementById('cassaAmicoBox');
   if (!box) return;
+  if (window._scontoCassa && window._scontoCassa.cliente !== c.id) window._scontoCassa = null;
   box.style.display = 'none'; box.innerHTML = '';
-  if (!c.codiceAmico) return;
+  const codice = c.codiceBenvenuto || c.codiceAmico;
+  if (!codice) return;
   try {
-    const s = await getDoc(doc(db, 'codiciPromo', c.codiceAmico));
+    const s = await getDoc(doc(db, 'codiciPromo', codice));
     if (!s.exists() || window.currentCassaCliente !== c.id) return;
     const x = s.data();
     const scad = x.scadenza && typeof x.scadenza.toMillis === 'function' ? x.scadenza.toMillis() : 0;
     if (x.usato === true || (scad && Date.now() > scad)) return;
     const sconto = Number(x.sconto) || 0;
-    box.innerHTML = `<div style="font-weight:700;font-size:15px;margin-bottom:6px">🎁 Primo acquisto con invito: −${sconto}%</div>
+    box.innerHTML = `<div style="font-weight:700;font-size:15px;margin-bottom:6px">🎁 Sconto primo acquisto: −${sconto}%${scad ? ` <span style="font-weight:400;font-size:12px">(valido fino al ${new Date(scad).toLocaleDateString('it-IT')})</span>` : ''}</div>
       <div style="font-size:13px;margin-bottom:10px">Scrivi sotto l'importo pieno, poi premi il pulsante: il tablet ti dice quanto far pagare.</div>
-      <button class="btn btn-primary" onclick="applicaCodiceAmicoCassa('${c.codiceAmico}', ${sconto})">Applica sconto amico −${sconto}%</button>`;
+      <button class="btn btn-primary" onclick="applicaCodiceAmicoCassa('${codice}', ${sconto})">Applica sconto primo acquisto −${sconto}%</button>`;
     box.style.display = 'block';
   } catch(e) { console.error('Codice amico:', e); }
 }
@@ -1855,13 +1857,14 @@ window.applicaCodiceAmicoCassa = async function(codice, sconto) {
   if (!pieno) { showToast("Scrivi prima l'importo pieno", 'error'); inp.focus(); return; }
   const scontato = Math.round(pieno * (100 - sconto)) / 100;
   const eur = n => n.toFixed(2).replace('.', ',');
-  if (!confirm(`Sconto amico −${sconto}%\n\nImporto pieno: € ${eur(pieno)}\nFai pagare: € ${eur(scontato)}\n\nConfermi? Il codice vale una volta sola.`)) return;
+  if (!confirm(`Sconto primo acquisto −${sconto}%\n\nImporto pieno: € ${eur(pieno)}\nFai pagare: € ${eur(scontato)}\n\nConfermi? Il codice vale una volta sola.`)) return;
   try {
     await updateDoc(doc(db, 'codiciPromo', codice), { usato: true, usatoAt: serverTimestamp(), usatoCanale: 'banco' });
     inp.value = scontato.toFixed(2);
+    window._scontoCassa = { cliente: currentCassaCliente, codice };   // acquisto scontato: niente punti
     if (typeof calcolaPunti === 'function') calcolaPunti();
-    document.getElementById('cassaAmicoBox').innerHTML = `<b>✓ Sconto amico applicato.</b> Fai pagare <b>€ ${eur(scontato)}</b>, poi premi <b>Aggiungi</b> per registrare l'acquisto.`;
-    showToast('Sconto amico applicato ✓');
+    document.getElementById('cassaAmicoBox').innerHTML = `<b>✓ Sconto primo acquisto applicato.</b> Fai pagare <b>€ ${eur(scontato)}</b>, poi premi <b>Aggiungi</b> per registrare l'acquisto (con lo sconto non si guadagnano punti).`;
+    showToast('Sconto primo acquisto applicato ✓');
   } catch(e) { showToast('Sconto non applicato: ' + e.message, 'error'); }
 };
 
@@ -1935,20 +1938,23 @@ window.calcolaPunti = function() {
   const importo = parseFloat(document.getElementById('cassaImporto').value)||0;
   const c = window.allClienti.find(x => x.id === currentCassaCliente);
   if (!c) return;
+  // Acquisto con sconto di primo acquisto: niente punti
+  if (window._scontoCassa && window._scontoCassa.cliente === currentCassaCliente) { document.getElementById('cassaPuntiCalc').value = 0; return; }
   const lv = getLivelloCliente(c);
   document.getElementById('cassaPuntiCalc').value = Math.round(importo * lv.moltiplicatore);
 }
 
 window.aggiungiPuntiCassa = async function() {
-  const puntiAdd = parseInt(document.getElementById('cassaPuntiCalc').value)||0;
+  const scontato = !!(window._scontoCassa && window._scontoCassa.cliente === currentCassaCliente);
+  const puntiAdd = scontato ? 0 : (parseInt(document.getElementById('cassaPuntiCalc').value)||0);
   const importo = parseFloat(document.getElementById('cassaImporto').value)||0;
-  if (!puntiAdd) { showToast('Inserisci un importo', 'error'); return; }
+  if (!importo || (!puntiAdd && !scontato)) { showToast('Inserisci un importo', 'error'); return; }
   const c = window.allClienti.find(x => x.id === currentCassaCliente);
   try {
     const res = await fetch('https://aggiornapunticliente-u3jmxuuypq-ey.a.run.app', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clienteId: currentCassaCliente, puntiAggiunti: puntiAdd, importo: importo })
+      body: JSON.stringify({ clienteId: currentCassaCliente, puntiAggiunti: puntiAdd, importo: importo, scontato })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Errore server');
@@ -1960,7 +1966,11 @@ window.aggiungiPuntiCassa = async function() {
     document.getElementById('cassaPuntiCalc').value = '';
     const ci = window.allClienti.find(x => x.id === currentCassaCliente);
     if (ci) ci.punti = nuovi;
-    showToast(`+${puntiAdd} punti aggiunti a ${c.nome} — WhatsApp inviato ✓`);
+    if (data.scontato) {
+      window._scontoCassa = null;
+      document.getElementById('cassaAmicoBox').style.display = 'none';
+      showToast(`Acquisto di ${c.nome} registrato — con sconto, nessun punto ✓`);
+    } else showToast(`+${data.puntiAggiunti ?? puntiAdd} punti aggiunti a ${c.nome} — WhatsApp inviato ✓`);
   } catch(e) { showToast('Errore', 'error'); console.error(e); }
 }
 
